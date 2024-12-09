@@ -49,7 +49,7 @@ void CFileModel::sendRequest(uint32_t command, const QString& fileName) {
         strncpy(request.file.fileName, fileName.toUtf8().constData(), 256);
     }
 
-    request.length = sizeof(request_t) - sizeof(file_t) + request.file.fileNameLen;
+    request.length = sizeof(request_t) - sizeof(file_t) + sizeof(request.file.fileNameLen) + request.file.fileNameLen;
     stream.writeRawData(reinterpret_cast<char*>(&request), request.length);
 
     socket->write(requestData);
