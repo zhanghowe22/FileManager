@@ -11,17 +11,20 @@ CFileModel::CFileModel(QObject* parent) : QObject(parent), socket(new QTcpSocket
 
 void CFileModel::connectToServer(const QString& host, quint16 port) {
     // 通过线程连接到服务器，避免阻塞主线程
-    QThread* thread = new QThread();
-    connect(thread, &QThread::started, this, [this, host, port]() { onConnectToServer(host, port); });
-    moveToThread(thread);
-    thread->start();
+    //QThread* thread = new QThread();
+    //connect(thread, &QThread::started, this, [this, host, port]() { onConnectToServer(host, port); });
+    //moveToThread(thread);
+    //thread->start();
+    onConnectToServer(host, port);
 }
 
 void CFileModel::onConnectToServer(const QString& host, quint16 port) {
     socket->connectToHost(host, port);
     if (!socket->waitForConnected(3000)) {
+        emit connectionStatusChanged(false);
         emit errorOccurred("连接服务器失败: " + socket->errorString());
     } else {
+        emit connectionStatusChanged(true);
         qDebug() << "成功连接到服务器";
     }
 }
@@ -67,27 +70,61 @@ void CFileModel::parseResponse(const QByteArray& data) {
     stream.setByteOrder(QDataStream::LittleEndian);
 
     response_t response;
-    stream.readRawData(reinterpret_cast<char*>(&response), sizeof(response_t));
+    stream.readRawData(reinterpret_cast<char*>(&response), sizeof(response.magic) + sizeof(response.length) + sizeof(response.command) + sizeof(response.file.fileNameLen));
 
     if (response.magic != 0xAABBCCDD) {
         emit errorOccurred("无效的响应数据 ");
         return;
     }
 
-    switch (response.command) {
-        case 0xAAAAAAAA: {  // 文件列表
-            QStringList files;
-            files.append(QString::fromUtf8(response.file.fileName));
-            emit fileListReceived(files);
-            break;
-        }
-        case 0xBBBBBBBB:  // 文件下载
-            emit fileDownloaded(QString::fromUtf8(response.file.fileName),
-                                QByteArray(reinterpret_cast<char*>(response.data.data), response.data.dataLen));
-            break;
-        case 0xCCCCCCCC:  // 文件删除
-            emit fileDeleted(QString::fromUtf8(response.file.fileName));
-            break;
-        default: emit errorOccurred("未知命令"); break;
-    }
+	// 获取文件名的长度
+	uint32_t fileNameLen = response.file.fileNameLen;
+
+	// 检查剩余的数据大小
+	int remainingDataLen = response.length - sizeof(response.magic) - sizeof(response.length) - sizeof(response.command) - sizeof(response.file.fileNameLen);
+
+	// 读取文件名（文件名长度可变）
+	if (remainingDataLen >= fileNameLen) {
+		QByteArray fileNameData(fileNameLen, 0);
+		stream.readRawData(fileNameData.data(), fileNameLen);
+		QString fileName = QString::fromUtf8(fileNameData);
+		remainingDataLen -= fileNameLen;
+
+		// 如果还有剩余数据，读取文件数据
+		QByteArray fileData;
+		if (response.command == 0xBBBBBBBB) {
+
+			if (remainingDataLen > 0) {
+				fileData.resize(remainingDataLen);
+				stream.readRawData(fileData.data(), remainingDataLen);
+			}
+			else {
+				emit errorOccurred("解析响应数据失败: 文件名数据不足 ");
+			}
+		}
+
+		// 根据不同的命令进行不同的处理
+		switch (response.command) {
+		case 0xAAAAAAAA: {  // 文件列表
+			QStringList files;
+			files.append(fileName);  // 这里只处理一个文件名，如果有多个文件可以扩展
+			emit fileListReceived(files);
+			break;
+		}
+		case 0xBBBBBBBB: {  // 文件下载
+			emit fileDownloaded(fileName, fileData);
+			break;
+		}
+		case 0xCCCCCCCC: {  // 文件删除
+			emit fileDeleted(fileName);
+			break;
+		}
+		default:
+			emit errorOccurred("未知命令 ");
+			break;
+		}
+	}
+	else {
+		emit errorOccurred("解析响应数据失败: 文件数据不足 ");
+	}
 }

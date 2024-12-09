@@ -1,10 +1,9 @@
 #ifndef CFILEVIEW_H
 #define CFILEVIEW_H
-#include <QFont>
-#include <QHBoxLayout>
+
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
-#include <QProgressBar>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -15,23 +14,25 @@ class CFileView : public QWidget {
   public:
     explicit CFileView(QWidget* parent = nullptr);
 
+    void updateFileList(const QStringList& files);
+    void showError(const QString& message);
+    void showDownloadProgress(const QString& fileName, int progress);
+    void updateConnectionStatus(const QString& status, bool isConnected);
   signals:
+    void connectRequested(const QString& ip, quint16 port);
+    void refreshRequested();
     void downloadRequested(const QString& fileName);
     void deleteRequested(const QString& fileName);
-    void refreshRequested();
-
-  public slots:
-    void updateFileList(const QStringList& files);
-    void showDownloadProgress(const QString& fileName, int progress);
-    void showError(const QString& message);
 
   private:
+    QLineEdit* ipInput;
+    QLineEdit* portInput;
+    QPushButton* connectButton;
+    QPushButton* refreshButton;
     QListWidget* fileList;
     QPushButton* downloadButton;
     QPushButton* deleteButton;
-    QPushButton* refreshButton;
-    QProgressBar* progressBar;
-    QLabel* statusLabel;
+    QLabel* connectionStatusLabel;  // 显示连接状态
 };
 
 #endif  // CFILEVIEW_H

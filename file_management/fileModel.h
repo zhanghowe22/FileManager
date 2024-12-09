@@ -16,7 +16,7 @@ struct file_t {
 
 struct data_t {
     uint32_t dataLen;
-    uint8_t data[1024];
+    uint8_t data[];
 };
 
 struct request_t {
@@ -44,11 +44,12 @@ class CFileModel : public QObject {
     void downloadFile(const QString& fileName);
     void deleteFile(const QString& fileName);
 
-  signals:
+signals:
     void fileListReceived(const QStringList& files);
-    void fileDownloaded(const QString& fileName, const QByteArray& data);
-    void fileDeleted(const QString& fileName);
-    void errorOccurred(const QString& message);
+	void fileDownloaded(const QString& fileName, const QByteArray& data);
+	void fileDeleted(const QString& fileName);
+	void errorOccurred(const QString& message);
+	void connectionStatusChanged(bool isConnected);
 
   private slots:
     void onReadyRead();

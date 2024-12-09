@@ -8,18 +8,22 @@ int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
 
     // 创建MVC各组件
-    CFileView view;
-    //    CFileModel model;
-    //    CFileController controller(&model, &view);
+    CFileModel* model = new CFileModel();
+    CFileView* view = new CFileView();
+    CFileController* controller = new CFileController(model, view);
 
     // 窗口标题
-    view.setWindowTitle("文件管理 ");
-    view.resize(600, 400);
+    view->setWindowTitle("文件管理v1.0 ");
+    view->resize(800, 600);
 
-    view.show();
+    view->show();
 
-    // 连接服务器
-    //    model.connectToServer("127.0.0.1", 6666);
+    int result = a.exec();
 
-    return a.exec();
+    // 清理资源
+    delete controller;
+    delete view;
+    delete model;
+
+    return result;
 }

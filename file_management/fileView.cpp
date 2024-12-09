@@ -1,45 +1,60 @@
 #include "fileView.h"
 
-CFileView::CFileView(QWidget* parent) : QWidget(parent) {
-    // 初始化控件
-    fileList = new QListWidget(this);
-    downloadButton = new QPushButton("下载文件", this);
-    deleteButton = new QPushButton("删除文件", this);
-    refreshButton = new QPushButton("刷新列表", this);
-    progressBar = new QProgressBar(this);
-    progressBar->setRange(0, 100);
-    progressBar->setValue(0);
-    progressBar->setTextVisible(true);
-    statusLabel = new QLabel("状态：未连接 ", this);
-    statusLabel->setFont(QFont("Microsoft YaHei", 10));
+#include <QMessageBox>
 
-    // 布局
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
+CFileView::CFileView(QWidget* parent) :
+    QWidget(parent), ipInput(new QLineEdit(this)), portInput(new QLineEdit(this)),
+    connectButton(new QPushButton("连接 ", this)), refreshButton(new QPushButton("刷新文件列表 ", this)),
+    fileList(new QListWidget(this)), downloadButton(new QPushButton("下载文件 ", this)),
+    deleteButton(new QPushButton("删除文件 ", this)), connectionStatusLabel(new QLabel("未连接 ", this)) {
+    QVBoxLayout* layout = new QVBoxLayout(this);
 
-    // 按钮布局
-    buttonLayout->addWidget(refreshButton);
-    buttonLayout->addWidget(downloadButton);
-    buttonLayout->addWidget(deleteButton);
+    // IP 和端口输入
+    QHBoxLayout* connectionLayout = new QHBoxLayout();
+    connectionLayout->addWidget(new QLabel("IP 地址: ", this));
+    connectionLayout->addWidget(ipInput);
+    connectionLayout->addWidget(new QLabel("端口: ", this));
+    connectionLayout->addWidget(portInput);
+    connectionLayout->addWidget(connectButton);
+    layout->addLayout(connectionLayout);
 
-    // 主界面布局
-    mainLayout->addWidget(fileList);
-    mainLayout->addLayout(buttonLayout);
-    mainLayout->addWidget(progressBar);
-    mainLayout->addWidget(statusLabel);
+    // 添加连接状态标签
+    connectionStatusLabel->setStyleSheet("color: red; font-weight: bold;");
+    layout->addWidget(connectionStatusLabel);
 
-    setLayout(mainLayout);
+    // 文件操作部分
+    layout->addWidget(refreshButton);
+    layout->addWidget(fileList);
+    layout->addWidget(downloadButton);
+    layout->addWidget(deleteButton);
 
-    // 信号与槽连接
+    setLayout(layout);
+
+    // 默认端口
+    portInput->setText("6666");
+
+    // 信号与槽
+    connect(connectButton, &QPushButton::clicked, this, [this]() {
+        QString ip = ipInput->text();
+        quint16 port = portInput->text().toUShort();
+        emit connectRequested(ip, port);
+    });
+
     connect(refreshButton, &QPushButton::clicked, this, &CFileView::refreshRequested);
+
     connect(downloadButton, &QPushButton::clicked, this, [this]() {
-        if (auto currentItem = fileList->currentItem()) {
-            emit downloadRequested(currentItem->text());
+        if (fileList->currentItem()) {
+            emit downloadRequested(fileList->currentItem()->text());
+        } else {
+            QMessageBox::warning(this, "警告", "请选择一个文件进行下载 ");
         }
     });
+
     connect(deleteButton, &QPushButton::clicked, this, [this]() {
-        if (auto currentItem = fileList->currentItem()) {
-            emit deleteRequested(currentItem->text());
+        if (fileList->currentItem()) {
+            emit deleteRequested(fileList->currentItem()->text());
+        } else {
+            QMessageBox::warning(this, "警告", "请选择一个文件进行删除 ");
         }
     });
 }
@@ -47,16 +62,18 @@ CFileView::CFileView(QWidget* parent) : QWidget(parent) {
 void CFileView::updateFileList(const QStringList& files) {
     fileList->clear();
     fileList->addItems(files);
-    statusLabel->setText("状态: 文件列表已刷新 ");
 }
 
 void CFileView::showDownloadProgress(const QString& fileName, int progress) {
-    progressBar->setValue(progress);
-    if (progress == 100) {
-        statusLabel->setText(QString("状态: 文件 %1 下载完成 ").arg(fileName));
-    } else {
-        statusLabel->setText(QString("状态: 文件 %1 下载中... (%2%)").arg(fileName).arg(progress));
-    }
+    QMessageBox::information(this, "下载进度", QString("文件 %1 下载完成 %2%").arg(fileName).arg(progress));
 }
 
-void CFileView::showError(const QString& message) { statusLabel->setText(QString("错误: %1").arg(message)); }
+void CFileView::showError(const QString& message) { QMessageBox::critical(this, "错误", message); }
+
+void CFileView::updateConnectionStatus(const QString& status, bool isConnected) {
+    connectionStatusLabel->setText(status);
+    connectionStatusLabel->setStyleSheet(isConnected ? "color: green; font-weight: bold;" :
+                                                       "color: red; font-weight: bold;");
+}
+
+

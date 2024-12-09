@@ -12,6 +12,8 @@ class CFileController : public QObject {
     explicit CFileController(CFileModel* model, CFileView* view, QObject* parent = nullptr);
 
   private slots:
+    void onConnectRequested(const QString& ip, quint16 port);
+    void onConnectionStatusChanged(bool isConnected);
     void onRequestFileList();
     void onDownloadFile(const QString& fileName);
     void onDeleteFile(const QString& fileName);
