@@ -33,6 +33,9 @@ class CFileView : public QWidget {
     QPushButton* downloadButton;
     QPushButton* deleteButton;
     QLabel* connectionStatusLabel;  // 显示连接状态
+
+    void setupUI();
+    void setupStyles();
 };
 
 #endif  // CFILEVIEW_H
