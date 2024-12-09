@@ -10,6 +10,14 @@ CFileModel::CFileModel(QObject* parent) : QObject(parent), socket(new QTcpSocket
 }
 
 void CFileModel::connectToServer(const QString& host, quint16 port) {
+    // 通过线程连接到服务器，避免阻塞主线程
+    QThread* thread = new QThread();
+    connect(thread, &QThread::started, this, [this, host, port]() { onConnectToServer(host, port); });
+    moveToThread(thread);
+    thread->start();
+}
+
+void CFileModel::onConnectToServer(const QString& host, quint16 port) {
     socket->connectToHost(host, port);
     if (!socket->waitForConnected(3000)) {
         emit errorOccurred("连接服务器失败: " + socket->errorString());
@@ -69,9 +77,7 @@ void CFileModel::parseResponse(const QByteArray& data) {
     switch (response.command) {
         case 0xAAAAAAAA: {  // 文件列表
             QStringList files;
-            for (uint32_t i = 0; i < response.file.fileNameLen; ++i) {
-                files.append(QString::fromUtf8(response.file.fileName));
-            }
+            files.append(QString::fromUtf8(response.file.fileName));
             emit fileListReceived(files);
             break;
         }

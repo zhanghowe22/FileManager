@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QTcpSocket>
+#include <QThread>
 
 // 数据结构（小端模式）
 #pragma pack(1)
@@ -52,12 +53,12 @@ class CFileModel : public QObject {
   private slots:
     void onReadyRead();
     void onDisconnected();
+    void onConnectToServer(const QString& host, quint16 port);
+    void sendRequest(uint32_t command, const QString& fileName = QString());
+    void parseResponse(const QByteArray& data);
 
   private:
     QTcpSocket* socket;
-
-    void sendRequest(uint32_t command, const QString& fileName = QString());
-    void parseResponse(const QByteArray& data);
 };
 
 #endif  // CFILEMODEL_H
