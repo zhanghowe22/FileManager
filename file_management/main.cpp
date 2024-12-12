@@ -16,6 +16,9 @@ int main(int argc, char* argv[]) {
     view->setWindowTitle("文件管理v1.0 ");
     view->resize(800, 600);
 
+	QFont font("Microsoft YaHei", 12);
+    view->setFont(font);
+
     view->show();
 
     int result = a.exec();

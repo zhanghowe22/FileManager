@@ -1,4 +1,4 @@
-#include "fileController.h"
+﻿#include "fileController.h"
 
 CFileController::CFileController(CFileModel* model, CFileView* view, QObject* parent) :
     QObject(parent), model(model), view(view) {
@@ -20,9 +20,9 @@ void CFileController::onConnectRequested(const QString& ip, quint16 port) { mode
 
 void CFileController::onConnectionStatusChanged(bool isConnected) {
     if (isConnected) {
-        view->updateConnectionStatus("已连接 ", true);
+        view->updateConnectionStatus(QStringLiteral("已连接"), true);
     } else {
-        view->updateConnectionStatus("未连接 ", false);
+        view->updateConnectionStatus(QStringLiteral("未连接"), false);
     }
 }
 
